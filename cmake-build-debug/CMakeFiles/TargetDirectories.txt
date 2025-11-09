@@ -1,0 +1,3 @@
+C:/Users/WINDOWS 11/OneDrive/Documentos/UTEC 2025-1/Algoritmos Y Estructura de Datos/Proyecto final/suffixtree/cmake-build-debug/CMakeFiles/SuffixTree.dir
+C:/Users/WINDOWS 11/OneDrive/Documentos/UTEC 2025-1/Algoritmos Y Estructura de Datos/Proyecto final/suffixtree/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/WINDOWS 11/OneDrive/Documentos/UTEC 2025-1/Algoritmos Y Estructura de Datos/Proyecto final/suffixtree/cmake-build-debug/CMakeFiles/rebuild_cache.dir

@@ -1,0 +1,60 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"jsonFile" : "directory-.-Debug-d0094a50bb2071803777.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.30"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "SuffixTree",
+					"targetIndexes" : 
+					[
+						0
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "SuffixTree::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-SuffixTree-Debug-5505b712ede39561ad65.json",
+					"name" : "SuffixTree",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/WINDOWS 11/OneDrive/Documentos/UTEC 2025-1/Algoritmos Y Estructura de Datos/Proyecto final/suffixtree/cmake-build-debug",
+		"source" : "C:/Users/WINDOWS 11/OneDrive/Documentos/UTEC 2025-1/Algoritmos Y Estructura de Datos/Proyecto final/suffixtree"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 7
+	}
+}
