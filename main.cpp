@@ -1,5 +1,7 @@
 #include <iostream>
+#include <unordered_map>
 #include <random>
+#include <queue>
 
 using namespace std;
 using namespace std;
@@ -160,72 +162,136 @@ public:
     }
 };
 
-class SufffixNode {
-    size_t inicio; //El valor donde comienza el string
-    int& fin; //El valor donde termina el string
-    int idx; //-1 si no es hoja, igual puedo saber que es hoja si su fin es igual al tamaño del SuffixTree
+struct SufffixNode {
+    int inicio; //El valor donde comienza el string, -1 para root
+    int fin; //El valor donde termina el string, -1 para root
+    int idx; //-1 si no es hoja, 0 si es interno
+    SufffixNode* sufffixLink=nullptr; //nullptr si es root;
 
-    //Primero vamos a hacerlo con vectores sus hijos
+    //Primero vamos a hacerlo con unorderedmap
     //HashTable<char,SufffixNode*> hijos;
-    vector<SufffixNode*> hijos;
+    unordered_map<char,SufffixNode*> hijos;
 
-public:
-    SufffixNode(int& end): fin(end) {
-        idx = -1;
+    SufffixNode(int _inicio=-1, int _fin=-1) {
+        inicio=_inicio;
+        fin=_fin;
+        idx=-1;
     }
 };
 
-class SufffixTree {
-    int tamaño=-1;
-    SufffixNode* raiz;
+struct SufffixTree {
+    int tamanio=-1;
     string palabra; //Palabra que se almacena
+    SufffixNode* raiz=new SufffixNode();
 
-public:
+    int remaining=0;//Declaramos las variables necesarias, insertamos el primer elemento
+    SufffixNode** activeNode=&raiz;
+    char activeEdge;
+    int activeLenght=0;
+    int end=-1;
+    SufffixNode* s_linkt_to=nullptr;
+
     SufffixTree(string word) {
-        raiz=new SufffixNode(tamaño);
+        tamanio=word.size();
+        raiz=new SufffixNode(); //inicializamos la raiz
         palabra=word;
     }
 
-    int& getTamano() {
-        return tamaño;
+    void creaHoja(int i, char caracter) {
+        (*activeNode)->idx=0;
+
+        SufffixNode* sufffixNode=new SufffixNode(i,end); //Creamos el nuevo nodo
+        if (activeLenght==0) {
+            (*activeNode)->hijos[caracter]=sufffixNode; //Le agregamos como hijo su valor;
+        }
+
+        else {
+            SufffixNode* currentNode=(*activeNode)->hijos[activeEdge]; //El nodo antiguo
+
+            currentNode->fin=currentNode->inicio+(activeLenght-1);
+            SufffixNode* recortadoNode=new SufffixNode(currentNode->fin+1,end);
+            (*activeNode)->hijos[caracter]=sufffixNode; //Le agregamos como hijo su valor;
+
+        }
+
     }
 
-    string getPalabra() {
-        return palabra;
+    void crearNodoInterno() {
+
     }
 
-    SufffixNode* getRoot() {
-        return raiz;
+    void buildSuffix() {
+        for (int i=0; i<tamanio;i++) {
+            remaining++; //Aumentamos el remaining
+            end++; //Aumentos el end
+
+            char caracter=palabra[i]; //caracter del string
+            int ubicacionSuffix;
+
+            activeEdge=palabra[i-(remaining-1)];
+            cout<<"Active Edge: "<<activeEdge<<endl;
+
+            if (!(*activeNode)->hijos.contains(caracter)) { //Si no existe un camino, crearlo, segundaReglaExtension
+                (*activeNode)->idx=0; //Ya no va a ser hoja, ahora va a ser un nodo interno;
+                creaHoja(i, caracter); //Creamos la hoja
+                remaining--;
+            }
+            else {
+                remaining++;
+                activeLenght++;
+            }
+
+            while (remaining>0) {
+                remaining--;
+            };
+        }
+    }
+
+    void imprimirPorNiveles() {
+        queue<pair<char,SufffixNode*>> cola;
+        cout<<"tamanio de raiz:" <<raiz->hijos.size()<<endl;
+        for (auto valor: raiz->hijos) {
+            cola.push(valor);
+        }
+
+        int contador=0;
+        while (!cola.empty()) {
+            cout<<"\n";
+            contador=cola.size();
+
+            for (int i=0; i<contador; i++) {
+                auto val=cola.front();
+                SufffixNode* nodo=val.second;
+
+                int finCadena=nodo->fin;
+                if (nodo->idx==-1) {
+                    finCadena=end;
+                }
+                cout<<val.first<<" "<<"["<<nodo->inicio<<";"<<finCadena<<"]"<<"----";
+
+                if (nodo->idx!=-1) {
+                    for (auto hijo: nodo->hijos) {
+                        cola.push(hijo);
+                    }
+                }
+                cola.pop();
+            }
+        }
+
     }
 
 };
 
-//Tengo que comprobar que siempre los Root seran los correctos
-bool NoPath(char letra, SufffixNode* aRoot, int aLenght, int aNode) {
 
-
-    return false;
-}
-
-void UkkonenAlgorithm(SufffixTree tree) {
-    string valor=tree.getPalabra();
-
-    int remaining=0;
-    SufffixNode* activeRoot=tree.getRoot();
-    int activeNode=-1;
-    int activeLenght=0;
-    int& end=tree.getTamano();
-
-    for (int i=0; i<valor.size();i++) {
-        remaining++; //Aumentamos el remaining;
-
-        if (NoPath(valor[i], activeRoot, activeLenght,activeNode)) {
-
-        }
-    }
-
-}
 
 int main() {
+    string palabra="abc$";
+
+    SufffixTree sufffix_tree(palabra);
+
+    sufffix_tree.buildSuffix();
+
+    sufffix_tree.imprimirPorNiveles();
+
     return 0;
 }
