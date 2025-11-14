@@ -166,7 +166,7 @@ struct SufffixNode {
     int inicio; //El valor donde comienza el string, -1 para root
     int fin; //El valor donde termina el string, -1 para root
     int idx; //-1 si no es hoja, 0 si es interno
-    SufffixNode* sufffixLink=nullptr; //nullptr si es root;
+    SufffixNode* suffixLink=nullptr; //nullptr si es root;
 
     //Primero vamos a hacerlo con unorderedmap
     //HashTable<char,SufffixNode*> hijos;
@@ -185,69 +185,18 @@ struct SufffixTree {
     SufffixNode* raiz=new SufffixNode();
 
     int remaining=0;//Declaramos las variables necesarias, insertamos el primer elemento
-    SufffixNode** activeNode=&raiz;
-    char activeEdge;
+    SufffixNode* activeNode=raiz;
+    int activeEdge=-1; //lo trabajamos como entero
     int activeLenght=0;
     int end=-1;
     SufffixNode* s_linkt_to=nullptr;
 
     SufffixTree(string word) {
         tamanio=word.size();
-        raiz=new SufffixNode(); //inicializamos la raiz
         palabra=word;
     }
 
-    void creaHoja(int i, char caracter) {
-        (*activeNode)->idx=0;
-
-        SufffixNode* sufffixNode=new SufffixNode(i,end); //Creamos el nuevo nodo
-        if (activeLenght==0) {
-            (*activeNode)->hijos[caracter]=sufffixNode; //Le agregamos como hijo su valor;
-        }
-
-        else {
-            SufffixNode* currentNode=(*activeNode)->hijos[activeEdge]; //El nodo antiguo
-
-            currentNode->fin=currentNode->inicio+(activeLenght-1);
-            SufffixNode* recortadoNode=new SufffixNode(currentNode->fin+1,end);
-            (*activeNode)->hijos[caracter]=sufffixNode; //Le agregamos como hijo su valor;
-
-        }
-
-    }
-
-    void crearNodoInterno() {
-
-    }
-
-    void buildSuffix() {
-        for (int i=0; i<tamanio;i++) {
-            remaining++; //Aumentamos el remaining
-            end++; //Aumentos el end
-
-            char caracter=palabra[i]; //caracter del string
-            int ubicacionSuffix;
-
-            activeEdge=palabra[i-(remaining-1)];
-            cout<<"Active Edge: "<<activeEdge<<endl;
-
-            if (!(*activeNode)->hijos.contains(caracter)) { //Si no existe un camino, crearlo, segundaReglaExtension
-                (*activeNode)->idx=0; //Ya no va a ser hoja, ahora va a ser un nodo interno;
-                creaHoja(i, caracter); //Creamos la hoja
-                remaining--;
-            }
-            else {
-                remaining++;
-                activeLenght++;
-            }
-
-            while (remaining>0) {
-                remaining--;
-            };
-        }
-    }
-
-    void imprimirPorNiveles() {
+    void imprimirPorNiveles() const {
         queue<pair<char,SufffixNode*>> cola;
         cout<<"tamanio de raiz:" <<raiz->hijos.size()<<endl;
         for (auto valor: raiz->hijos) {
@@ -261,13 +210,17 @@ struct SufffixTree {
 
             for (int i=0; i<contador; i++) {
                 auto val=cola.front();
-                SufffixNode* nodo=val.second;
+                const SufffixNode* nodo=val.second;
 
                 int finCadena=nodo->fin;
                 if (nodo->idx==-1) {
                     finCadena=end;
                 }
-                cout<<val.first<<" "<<"["<<nodo->inicio<<";"<<finCadena<<"]"<<"----";
+                int sl=0;
+                if (nodo->suffixLink!=nullptr) {
+                    sl=1;
+                }
+                cout<<val.first<<" "<<"["<<nodo->inicio<<";"<<finCadena<<"]"<<"("<<nodo->hijos.size()<<")"<<"("<<sl<<")"<<"----";
 
                 if (nodo->idx!=-1) {
                     for (auto hijo: nodo->hijos) {
@@ -280,12 +233,159 @@ struct SufffixTree {
 
     }
 
+    void creaCamino(int i, char caracter) {
+        (activeNode)->idx=0;
+
+        auto* sufffixNode=new SufffixNode(i,end); //Creamos el nuevo nodo
+
+
+        if (activeLenght==0) {
+            if (s_linkt_to!=nullptr) {
+                s_linkt_to->suffixLink=raiz;
+            }
+            (activeNode)->hijos[caracter]=sufffixNode;  //Le agregamos como hijo su valor, le agregamos una hoja
+        }
+
+        else {
+            SufffixNode* currentNode=(activeNode)->hijos[palabra[activeEdge]]; //El nodo que contiene al caracter
+
+            auto* nuevoNode=new SufffixNode(currentNode->inicio,currentNode->inicio+(activeLenght-1));
+
+            currentNode->inicio=nuevoNode->fin+1;
+
+            (activeNode)->hijos[palabra[activeEdge]]=nuevoNode; //Le agregamos o actualizamos como hijo su valor
+
+            nuevoNode->hijos[caracter]=sufffixNode;
+            nuevoNode->hijos[palabra[currentNode->inicio]]=currentNode;
+            nuevoNode->idx=0;
+
+            if (s_linkt_to!=nullptr) {
+                cout<<"le asignamos un suffixlink"<<endl;
+                s_linkt_to->suffixLink=nuevoNode;
+            }
+
+            s_linkt_to=nuevoNode;
+
+            if (activeNode==raiz) {
+                cout<<"Esta en el nodo raiz"<<endl;
+                activeLenght--;
+            }
+        }
+
+        if (activeNode!=raiz) {
+            cout<<"Esta en otro nodo que no es raiz"<<endl;
+            cout<<"Su suffixLink: "<<(activeNode)->suffixLink->inicio<<endl;
+            activeNode=(activeNode)->suffixLink;
+
+        }
+
+        if ((activeNode)==raiz) {
+            cout<<"Paso a estar en la raiz"<<endl;
+        }
+
+    }
+
+    void buildSuffix() {
+        for (int i=0; i<tamanio;i++) {
+            remaining++; //Aumentamos el remaining
+            end++; //Aumentos el end
+
+            if (s_linkt_to!=nullptr) {
+                s_linkt_to->suffixLink=raiz;
+                s_linkt_to=nullptr;
+            }
+
+            char caracter=palabra[i]; //caracter nuevo del string
+
+            while (remaining>0) {
+                cout<<"i evaluado: "<<caracter<<endl;
+                cout<<"Active Edge: "<<palabra[activeEdge]<<"---"<<"Active Lenght: "<<activeLenght<<" "<<"Valor Active Edge: "<<activeEdge<<endl;
+                cout<<"Remaining: "<<remaining<<endl;
+
+                if (activeNode->suffixLink) {
+                    cout<<"Tiene suffixlink: "<<activeNode->suffixLink->inicio<<endl;
+
+                }
+                else {
+                    cout<<"No tiene suffixlink"<<endl;
+                }
+
+                imprimirPorNiveles();
+                cout<<endl;
+                if (activeLenght==0) {
+                    if (!(activeNode)->hijos.contains(caracter)) { //Si no existe un camino, crearlo, 2da Regla de Extension
+                        creaCamino(i, caracter); //Creamos la hoja
+                        remaining--; //Y como creamos camino el remaining disminuye
+                    }
+                    else {
+                        if (activeNode==raiz) {
+                            cout<<"Si hay un camino con ese valor"<<endl;
+                            cout<<"active edge anterior: "<<palabra[activeEdge]<<endl;
+                            activeEdge=i-(remaining-1);
+                            cout<<"active edge normal: "<<palabra[activeEdge]<<endl;
+                        }
+                        activeLenght++;
+                        break;
+                    }
+                }
+                else {
+                    SufffixNode* nodoDirigirse=(activeNode)->hijos[palabra[activeEdge]];
+
+                    int finNodo=end;
+                    if (nodoDirigirse->idx==0) {
+                        finNodo=nodoDirigirse->fin;
+                    }
+
+                    int tamanioNodo=finNodo-nodoDirigirse->inicio+1;
+
+                    while (tamanioNodo<=activeLenght) {
+                        cout<<"El tamanio del nodo es menor o igual que el active lenght"<<endl;
+                        activeNode=(activeNode)->hijos[palabra[activeEdge]];
+                        activeLenght=activeLenght-tamanioNodo;
+                        activeEdge=i-(remaining-1)+tamanioNodo;
+                        cout<<"Nuevo active edge: "<<activeEdge<<endl;
+                        cout<<"Nuevo active lenght: "<<activeLenght<<endl;
+
+                        if ((activeNode)->hijos.contains(palabra[activeEdge])) {
+                            nodoDirigirse=(activeNode)->hijos[palabra[activeEdge]];
+                        }
+                        else {
+                            creaCamino(i,caracter);
+                            remaining--;
+                        }
+                    }
+
+                    if (activeLenght!=0) {
+                        cout<<endl;
+                        cout<<"Estamos en la contradicion"<<endl;
+                        cout<<nodoDirigirse->inicio+activeLenght<<endl;
+                        char siguientePalabra=palabra[nodoDirigirse->inicio+activeLenght];
+                        cout<<"caracter: "<<caracter<<" y palabra esperada "<<siguientePalabra<<endl;
+
+                        if (siguientePalabra!=caracter) {
+                            cout<<"No concuerdan las letras"<<endl;
+                            creaCamino(i,caracter);
+                            remaining--;
+                            activeEdge=i-(remaining-1);
+                            if (activeEdge==palabra.size())
+                                activeEdge=-1;
+                            cout<<"valor de active edge: "<<activeEdge<<endl;
+                        }
+                        else {
+                            activeLenght++;
+                            break;
+                        }
+                    }
+
+                }
+            }
+        }
+    }
+
 };
 
-
-
 int main() {
-    string palabra="abc$";
+    string palabra="abaaba$";
 
     SufffixTree sufffix_tree(palabra);
 
