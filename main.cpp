@@ -339,21 +339,33 @@ struct SufffixTree {
                     int tamanioNodo=finNodo-nodoDirigirse->inicio+1;
 
                     while (tamanioNodo<=activeLenght) {
-                        cout<<"El tamanio del nodo es menor o igual que el active lenght"<<endl;
-                        activeNode=(activeNode)->hijos[palabra[activeEdge]];
+                        cout<<"El tamanio del nodo es menor o igual qyue el active lenght"<<endl;
+                        activeNode=nodoDirigirse;
                         activeLenght=activeLenght-tamanioNodo;
                         activeEdge=i-(remaining-1)+tamanioNodo;
                         cout<<"Nuevo active edge: "<<activeEdge<<endl;
                         cout<<"Nuevo active lenght: "<<activeLenght<<endl;
 
                         if ((activeNode)->hijos.contains(palabra[activeEdge])) {
+                            cout<<"aquii"<<endl;
+                            cout<<"Nodo anterior: "<<nodoDirigirse->inicio<<endl;
+                            cout<<"Palabra a dirigirse: "<<palabra[activeEdge]<<endl;
                             nodoDirigirse=(activeNode)->hijos[palabra[activeEdge]];
                         }
                         else {
                             creaCamino(i,caracter);
                             remaining--;
                         }
+
+                        finNodo=end;
+                        if (nodoDirigirse->idx==0) {
+                            finNodo=nodoDirigirse->fin;
+                        }
+
+                        tamanioNodo=finNodo-nodoDirigirse->inicio+1;
+                        cout<<"Nuevo tamanio del active nodo: "<<tamanioNodo<<endl;
                     }
+                    cout<<"salio del while de tamanio"<<endl;
 
                     if (activeLenght!=0) {
                         cout<<endl;
@@ -385,7 +397,7 @@ struct SufffixTree {
 };
 
 int main() {
-    string palabra="abaaba$";
+    string palabra="mississi$";
 
     SufffixTree sufffix_tree(palabra);
 
