@@ -166,7 +166,7 @@ struct SufffixNode {
     int inicio; //El valor donde comienza el string, -1 para root
     int fin; //El valor donde termina el string, -1 para root
     int idx; //-1 si no es hoja, 0 si es interno
-    SufffixNode* suffixLink=nullptr; //nullptr si es root;
+    SufffixNode* suffixLink=nullptr; //nullptr si es root
 
     //Primero vamos a hacerlo con unorderedmap
     //HashTable<char,SufffixNode*> hijos;
@@ -219,11 +219,12 @@ struct SufffixTree {
                 if (nodo->idx==-1) {
                     finCadena=end;
                 }
-                int sl=0;
-                if (nodo->suffixLink!=nullptr) {
-                    sl=1;
+
+                char letraSuffix='#';
+                if (nodo->suffixLink!=nullptr and nodo->suffixLink!=raiz) {
+                    letraSuffix=palabra[nodo->suffixLink->inicio];
                 }
-                cout<<val.first<<" "<<"["<<nodo->inicio<<";"<<finCadena<<"]"<<"("<<nodo->hijos.size()<<")"<<"("<<sl<<")"<<"----";
+                cout<<val.first<<" "<<"["<<nodo->inicio<<";"<<finCadena<<"]"<<"("<<nodo->hijos.size()<<")"<<"("<<letraSuffix<<")"<<"----";
 
                 if (nodo->idx!=-1) {
                     for (auto hijo: nodo->hijos) {
@@ -248,7 +249,6 @@ struct SufffixTree {
 
     SufffixNode* creaCamino(int i, char caracter) {
         cout<<"Se comienza la creacion de camino, entrando con active edge: "<<activeEdge<<"; active lenght: "<<activeLenght<<endl;
-        activeNode->idx=0; //El nodo activo ya no va a ser raiz
         auto* sufffixNode=new SufffixNode(i,end);//Creamos el nuevo nodo
 
         if (activeLenght==0) { //Solo debemos agregarle una hoja
@@ -386,16 +386,57 @@ struct SufffixTree {
         cout<<"Se construyo exitsamente"<<endl;
     }
 
+    bool existePalabra(const string& buscar) {
+        SufffixNode* camino=raiz;
+        int indicePatron=0;
+        int n = buscar.size();
+
+        while (indicePatron<buscar.size()) {
+            char caracterActual=buscar[indicePatron];
+            if (!camino->hijos.contains(caracterActual)) {
+                return false;
+            }
+            camino=camino->hijos[caracterActual];
+            int tamanioCamino=calcularTamanio(camino);
+
+            for (int i = 0; i < tamanioCamino; i++) {
+
+                if (indicePatron == n) {
+                    return true;
+                }
+
+                char charEnArbol = palabra[camino->inicio + i];
+                char charEnPatron = buscar[indicePatron];
+
+                if (charEnPatron != charEnArbol) {
+                    return false;
+                }
+
+                indicePatron++;
+            }
+        }
+
+        return true;
+    }
+
+    int cantidadVeces(const string& busccar) {
+
+
+    }
 };
 
 int main() {
-    string palabra="ATTAAAGGTTTATACCTTCCCAGGTAACAAACCAACCAACTTTCGATCTCTTGTAGATCT$";
+    //string palabra="ATTAAAGGTTTATACCTTCCCAGGTAACAAACCAACCAACTTTCGATCTCTTGTAGATCT$";
+    string palabra="abaaba$";
 
     SufffixTree sufffix_tree(palabra);
 
     sufffix_tree.buildSuffix();
 
     sufffix_tree.imprimirPorNiveles();
+
+    cout<<endl;
+    cout<<"Existe la palabra: "<<sufffix_tree.existePalabra("ATTA")<<endl;
 
     return 0;
 }
