@@ -106,6 +106,7 @@ struct SufffixTree {
                 cola.pop();
             }
         }
+        cout<<endl;
     }
 
     void imprimirJson(SufffixNode* nodo, string textoCompleto) {
@@ -148,7 +149,6 @@ struct SufffixTree {
     }
 
     SufffixNode* creaCamino(int i, char caracter) {
-        cout << "Se comienza la creacion de camino, entrando con active edge: " << activeEdge << "; active lenght: " << activeLenght << endl;
         auto* sufffixNode = new SufffixNode(i, end);
 
         if (activeLenght == 0) {
@@ -177,18 +177,6 @@ struct SufffixTree {
             char caracter = palabra[i];
 
             while (remaining > 0) {
-                cout << "i evaluado: " << caracter << endl;
-                cout << "Active Edge: " << palabra[activeEdge] << "---" << "Active Lenght: " << activeLenght << " " << "Valor Active Edge: " << activeEdge << endl;
-                cout << "Remaining: " << remaining << endl;
-
-                if (activeNode->suffixLink) {
-                    cout << "Tiene suffixlink: " << activeNode->suffixLink->inicio << endl;
-                } else {
-                    cout << "No tiene suffixlink" << endl;
-                }
-
-                imprimirPorNiveles();
-                cout << endl;
 
                 if (activeLenght > 0) {
                     SufffixNode* nodoSeguir = activeNode->hijos[palabra[activeEdge]];
@@ -232,13 +220,7 @@ struct SufffixTree {
                     SufffixNode* nodoDirigirse = activeNode->hijos[palabra[activeEdge]];
                     char siguientePalabra = palabra[nodoDirigirse->inicio + activeLenght];
 
-                    cout << endl;
-                    cout << "Estamos en la contradicion" << endl;
-                    cout << "caracter: " << caracter << " y palabra esperada " << siguientePalabra << endl;
-
                     if (siguientePalabra == caracter) {
-                        cout << "active edge anterior: " << activeEdge << endl;
-                        cout << "Concuerdan las letras" << endl;
                         activeLenght++;
 
                         if (s_linkt_to != nullptr) {
@@ -248,8 +230,6 @@ struct SufffixTree {
                         break;
                     }
 
-                    cout << "active edge anterior: " << activeEdge << endl;
-                    cout << "No concuerdan las letras" << endl;
                     SufffixNode* nuevoNodoInterno = creaCamino(i, caracter);
 
                     if (s_linkt_to != nullptr) {
@@ -271,8 +251,6 @@ struct SufffixTree {
                 }
             }
         }
-        cout << "Remaining final: " << remaining << endl;
-        cout << "Se construyo exitsamente" << endl;
     }
 
     //Algorithm 2 Algoritmo de Busqueda de Patron
