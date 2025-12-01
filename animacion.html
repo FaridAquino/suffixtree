@@ -117,6 +117,7 @@
         <input type="text" id="searchInput" placeholder="Buscar patrón..."
             style="width: 50%; padding: 8px; margin-top: 10px; border: 1px solid #ccc; border-radius: 5px;">
         <button onclick="animateSearch()" style="background: #007bff;">Buscar Patrón</button>
+        <div id="search-status" style="margin-top: 10px; font-weight: bold; min-height: 20px;"></div>
     </div>
 
     <div id="tree-container"></div>
@@ -277,7 +278,18 @@
 
         async function animateSearch() {
             const searchInput = document.getElementById('searchInput').value;
-            if (!searchInput || !rootNode) return;
+            const statusDiv = document.getElementById('search-status');
+            statusDiv.textContent = ""; // Reset status
+            statusDiv.style.color = "black";
+
+            if (!searchInput) {
+                alert("Por favor ingresa un patrón.");
+                return;
+            }
+            if (!rootNode) {
+                alert("Por favor renderiza el árbol primero.");
+                return;
+            }
 
             // Reset styles first
             d3.selectAll(".node circle").style("fill", d => d.children ? "#fff" : "#ffcc00").style("stroke", "steelblue");
@@ -287,69 +299,83 @@
             let remainingPattern = searchInput;
             let found = false;
 
-            // Highlight root
-            highlightNode(currentNode.data.name, true);
-            await sleep(500);
+            try {
+                // Highlight root
+                highlightNode(currentNode.data.name, true);
+                await sleep(500);
 
-            while (remainingPattern.length > 0) {
-                let matchFound = false;
+                while (remainingPattern.length > 0) {
+                    let matchFound = false;
 
-                if (!currentNode.children) break;
+                    if (!currentNode.children) break;
 
-                for (const child of currentNode.children) {
-                    const edgeLabel = child.data.edgeLabel;
+                    for (const child of currentNode.children) {
+                        const edgeLabel = child.data.edgeLabel;
 
-                    // Check if edge label starts with the first char of remaining pattern
-                    if (edgeLabel && edgeLabel.startsWith(remainingPattern[0])) {
-                        // Highlight edge
-                        highlightEdge(child.data.name, true);
-                        await sleep(500);
+                        // Check if edge label starts with the first char of remaining pattern
+                        if (edgeLabel && edgeLabel.startsWith(remainingPattern[0])) {
+                            // Highlight edge
+                            highlightEdge(child.data.name, true);
+                            await sleep(500);
 
-                        // Highlight node
-                        highlightNode(child.data.name, true);
-                        await sleep(500);
+                            // Highlight node
+                            highlightNode(child.data.name, true);
+                            await sleep(500);
 
-                        // Check if the edge label is a prefix of the remaining pattern or vice versa
-                        let matchLength = 0;
-                        while (matchLength < edgeLabel.length && matchLength < remainingPattern.length && edgeLabel[matchLength] === remainingPattern[matchLength]) {
-                            matchLength++;
+                            // Check if the edge label is a prefix of the remaining pattern or vice versa
+                            let matchLength = 0;
+                            while (matchLength < edgeLabel.length && matchLength < remainingPattern.length && edgeLabel[matchLength] === remainingPattern[matchLength]) {
+                                matchLength++;
+                            }
+
+                            if (matchLength === edgeLabel.length) {
+                                // Consumed entire edge label, move down
+                                remainingPattern = remainingPattern.substring(matchLength);
+                                currentNode = child;
+                                matchFound = true;
+                                if (remainingPattern.length === 0) found = true;
+                            } else if (matchLength === remainingPattern.length) {
+                                // Consumed entire pattern, match found inside this edge
+                                remainingPattern = "";
+                                found = true;
+                                matchFound = true;
+                            } else {
+                                // Mismatch in the middle of edge
+                                matchFound = false; // Stop here
+                            }
+                            break; // Found the correct path, break child loop
                         }
-
-                        if (matchLength === edgeLabel.length) {
-                            // Consumed entire edge label, move down
-                            remainingPattern = remainingPattern.substring(matchLength);
-                            currentNode = child;
-                            matchFound = true;
-                            if (remainingPattern.length === 0) found = true;
-                        } else if (matchLength === remainingPattern.length) {
-                            // Consumed entire pattern, match found inside this edge
-                            remainingPattern = "";
-                            found = true;
-                            matchFound = true;
-                        } else {
-                            // Mismatch in the middle of edge
-                            matchFound = false; // Stop here
-                        }
-                        break; // Found the correct path, break child loop
                     }
+
+                    if (!matchFound) break;
                 }
 
-                if (!matchFound) break;
-            }
+                if (found) {
+                    // Count occurrences (leaves)
+                    const count = countLeaves(currentNode);
+                    const msg = `Patrón "${searchInput}" encontrado! Aparece ${count} veces.`;
+                    statusDiv.textContent = msg;
+                    statusDiv.style.color = "green";
+                    await sleep(100);
+                    alert(msg);
+                } else {
+                    const msg = `Patrón "${searchInput}" no encontrado.`;
+                    statusDiv.textContent = msg;
+                    statusDiv.style.color = "red";
+                    await sleep(100);
+                    alert(msg);
+                }
 
-            if (found) {
-                // Count occurrences (leaves)
-                const count = countLeaves(currentNode);
-                alert(`Patrón encontrado! Aparece ${count} veces.`);
-            } else {
-                alert("Patrón no encontrado.");
+            } catch (e) {
+                console.error(e);
+                alert("Ocurrió un error durante la búsqueda: " + e.message);
             }
 
             // Reset after a delay
             setTimeout(() => {
                 d3.selectAll(".node circle").style("fill", d => d.children ? "#fff" : "#ffcc00").style("stroke", "steelblue");
                 d3.selectAll(".link").style("stroke", "#ccc").style("stroke-width", "2px");
-            }, 2000);
+            }, 3000);
         }
 
         function highlightNode(nodeId, active) {
