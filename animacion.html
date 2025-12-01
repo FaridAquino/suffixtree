@@ -1,153 +1,381 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>Visualizador Suffix Tree de Ukkonen</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
-        body { font-family: sans-serif; background: #f4f4f9; display: flex; flex-direction: column; align-items: center; }
-        #controls { margin: 20px; width: 80%; text-align: center; }
-        textarea { width: 100%; height: 100px; border: 1px solid #ccc; border-radius: 5px; padding: 10px; }
-        button { background: #28a745; color: white; border: none; padding: 10px 20px; cursor: pointer; font-size: 16px; margin-top: 10px; border-radius: 5px; }
-        button:hover { background: #218838; }
-        #tree-container { width: 95%; height: 800px; border: 1px solid #ddd; background: white; border-radius: 8px; overflow: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        
-        .node circle { fill: #fff; stroke: steelblue; stroke-width: 3px; cursor: pointer; }
-        .node text { font: 12px sans-serif; }
-        .link { fill: none; stroke: #ccc; stroke-width: 2px; }
-        
+        body {
+            font-family: sans-serif;
+            background: #f4f4f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #controls {
+            margin: 20px;
+            width: 80%;
+            text-align: center;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+        }
+
+        button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background: #218838;
+        }
+
+        #tree-container {
+            width: 95%;
+            height: 800px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 8px;
+            overflow: auto;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .node circle {
+            fill: #fff;
+            stroke: steelblue;
+            stroke-width: 3px;
+            cursor: pointer;
+        }
+
+        .node text {
+            font: 12px sans-serif;
+        }
+
+        .link {
+            fill: none;
+            stroke: #ccc;
+            stroke-width: 2px;
+        }
+
         /* Estilo para los Suffix Links */
-        .suffix-link { fill: none; stroke: #ff4444; stroke-width: 2px; stroke-dasharray: 5,5; opacity: 0.6; marker-end: url(#arrow); }
-        
-        .edge-label { font-size: 11px; fill: #555; font-family: monospace; background: white; }
-        .edge-rect { fill: white; opacity: 0.8; }
+        .suffix-link {
+            fill: none;
+            stroke: #ff4444;
+            stroke-width: 2px;
+            stroke-dasharray: 5, 5;
+            opacity: 0.6;
+            marker-end: url(#arrow);
+        }
+
+        .edge-label {
+            font-size: 11px;
+            fill: #555;
+            font-family: monospace;
+            background: white;
+        }
+
+        .edge-rect {
+            fill: white;
+            opacity: 0.8;
+        }
+
+        /* Estilos para resaltado de búsqueda */
+        .highlight-node circle {
+            fill: #007bff !important;
+            stroke: #0056b3 !important;
+            stroke-width: 4px !important;
+        }
+
+        .highlight-link {
+            stroke: #007bff !important;
+            stroke-width: 4px !important;
+        }
     </style>
 </head>
+
 <body>
 
-<div id="controls">
-    <h3>Visualizador de Suffix Tree</h3>
-    <textarea id="jsonInput" placeholder="Pega aquí el JSON generado por tu C++..."></textarea>
-    <br>
-    <button onclick="drawTree()">Renderizar Árbol</button>
-</div>
+    <div id="controls">
+        <h3>Visualizador de Suffix Tree</h3>
+        <textarea id="jsonInput" placeholder="Pega aquí el JSON generado por tu C++..."></textarea>
+        <br>
+        <button onclick="drawTree()">Renderizar Árbol</button>
+        <br>
+        <input type="text" id="searchInput" placeholder="Buscar patrón..."
+            style="width: 50%; padding: 8px; margin-top: 10px; border: 1px solid #ccc; border-radius: 5px;">
+        <button onclick="animateSearch()" style="background: #007bff;">Buscar Patrón</button>
+    </div>
 
-<div id="tree-container"></div>
+    <div id="tree-container"></div>
 
-<script>
-function drawTree() {
-    const input = document.getElementById('jsonInput').value;
-    if(!input.trim()) return alert("Por favor pega el JSON primero");
+    <script>
+        let rootNode; // Store the root hierarchy for searching
 
-    let treeData;
-    try {
-        treeData = JSON.parse(input);
-    } catch(e) {
-        return alert("JSON inválido. Asegúrate de copiar todo desde { hasta }");
-    }
+        function drawTree() {
+            const input = document.getElementById('jsonInput').value;
+            if (!input.trim()) return alert("Por favor pega el JSON primero");
 
-    d3.select("#tree-container").selectAll("*").remove();
+            let treeData;
+            try {
+                treeData = JSON.parse(input);
+            } catch (e) {
+                return alert("JSON inválido. Asegúrate de copiar todo desde { hasta }");
+            }
 
-    const width = 1200;
-    const height = 800;
-    
-    const svg = d3.select("#tree-container").append("svg")
-        .attr("width", width)
-        .attr("height", height)
-        .call(d3.zoom().on("zoom", (event) => {
-            g.attr("transform", event.transform);
-        }))
-        .append("g")
-        .attr("transform", "translate(50,50)");
+            d3.select("#tree-container").selectAll("*").remove();
 
-    svg.append("defs").append("marker")
-        .attr("id", "arrow")
-        .attr("viewBox", "0 -5 10 10")
-        .attr("refX", 18)
-        .attr("refY", 0)
-        .attr("markerWidth", 6)
-        .attr("markerHeight", 6)
-        .attr("orient", "auto")
-        .append("path")
-        .attr("d", "M0,-5L10,0L0,5")
-        .attr("fill", "#ff4444");
+            const width = 1200;
+            const height = 800;
 
-    const root = d3.hierarchy(treeData);
-    const treeLayout = d3.tree().size([width - 100, height - 200]);
-    treeLayout(root);
+            const svg = d3.select("#tree-container").append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .call(d3.zoom().on("zoom", (event) => {
+                    g.attr("transform", event.transform);
+                }))
+                .append("g")
+                .attr("id", "tree-g") // Add ID for easy selection
+                .attr("transform", "translate(50,50)");
 
-    const nodeMap = {};
-    root.descendants().forEach(d => {
-        nodeMap[d.data.name] = d;
-    });
+            // Define arrow marker
+            svg.append("defs").append("marker")
+                .attr("id", "arrow")
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 18)
+                .attr("refY", 0)
+                .attr("markerWidth", 6)
+                .attr("markerHeight", 6)
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
+                .attr("fill", "#ff4444");
 
-    const link = svg.selectAll(".link")
-        .data(root.links())
-        .enter().append("g")
-        .attr("class", "link-group");
+            rootNode = d3.hierarchy(treeData); // Save to global variable
+            const treeLayout = d3.tree().size([width - 100, height - 200]);
+            treeLayout(rootNode);
 
-    link.append("path")
-        .attr("class", "link")
-        .attr("d", d3.linkVertical()
-            .x(d => d.x)
-            .y(d => d.y));
+            const nodeMap = {};
+            rootNode.descendants().forEach(d => {
+                nodeMap[d.data.name] = d;
+                d.data.d3Node = d; // Link data back to d3 node for easy access
+            });
 
-    const labelGroup = link.append("g")
-        .attr("transform", d => {
-            const x = (d.source.x + d.target.x) / 2;
-            const y = (d.source.y + d.target.y) / 2;
-            return `translate(${x},${y})`;
-        });
+            // Prepare links but keep them hidden initially
+            const link = svg.selectAll(".link")
+                .data(rootNode.links())
+                .enter().append("g")
+                .attr("class", "link-group")
+                .attr("id", d => `link-${d.target.data.name}`) // ID for animation
+                .style("opacity", 0); // Hidden initially
 
-    labelGroup.append("rect")
-        .attr("class", "edge-rect")
-        .attr("x", -10).attr("y", -10)
-        .attr("width", 20).attr("height", 20);
+            link.append("path")
+                .attr("class", "link")
+                .attr("d", d3.linkVertical()
+                    .x(d => d.x)
+                    .y(d => d.y));
 
-    labelGroup.append("text")
-        .attr("class", "edge-label")
-        .attr("dy", ".35em")
-        .attr("text-anchor", "middle")
-        .text(d => d.target.data.edgeLabel);
+            const labelGroup = link.append("g")
+                .attr("transform", d => {
+                    const x = (d.source.x + d.target.x) / 2;
+                    const y = (d.source.y + d.target.y) / 2;
+                    return `translate(${x},${y})`;
+                });
 
-    const suffixLinks = [];
-    root.descendants().forEach(d => {
-        if (d.data.suffixLink && nodeMap[d.data.suffixLink]) {
-            suffixLinks.push({source: d, target: nodeMap[d.data.suffixLink]});
+            labelGroup.append("rect")
+                .attr("class", "edge-rect")
+                .attr("x", -10).attr("y", -10)
+                .attr("width", 20).attr("height", 20);
+
+            labelGroup.append("text")
+                .attr("class", "edge-label")
+                .attr("dy", ".35em")
+                .attr("text-anchor", "middle")
+                .text(d => d.target.data.edgeLabel);
+
+            const suffixLinks = [];
+            rootNode.descendants().forEach(d => {
+                if (d.data.suffixLink && nodeMap[d.data.suffixLink]) {
+                    suffixLinks.push({ source: d, target: nodeMap[d.data.suffixLink] });
+                }
+            });
+
+            // Prepare suffix links but keep them hidden
+            svg.selectAll(".suffix-link")
+                .data(suffixLinks)
+                .enter().append("path")
+                .attr("class", "suffix-link")
+                .attr("d", d => {
+                    const path = d3.path();
+                    path.moveTo(d.source.x, d.source.y);
+                    path.quadraticCurveTo(
+                        (d.source.x + d.target.x) / 2 + 30,
+                        (d.source.y + d.target.y) / 2,
+                        d.target.x, d.target.y
+                    );
+                    return path.toString();
+                })
+                .style("opacity", 0); // Hidden initially
+
+            // Prepare nodes but keep them hidden
+            const node = svg.selectAll(".node")
+                .data(rootNode.descendants())
+                .enter().append("g")
+                .attr("class", "node")
+                .attr("id", d => `node-${d.data.name}`) // ID for animation
+                .attr("transform", d => `translate(${d.x},${d.y})`)
+                .style("opacity", 0); // Hidden initially
+
+            node.append("circle")
+                .attr("r", 10)
+                .style("fill", d => d.children ? "#fff" : "#ffcc00");
+
+            node.append("text")
+                .attr("dy", -15)
+                .attr("text-anchor", "middle")
+                .text(d => d.data.name);
+
+            // Start animation
+            animateConstruction(rootNode.descendants(), rootNode.links(), suffixLinks);
         }
-    });
 
-    svg.selectAll(".suffix-link")
-        .data(suffixLinks)
-        .enter().append("path")
-        .attr("class", "suffix-link")
-        .attr("d", d => {
-            const path = d3.path();
-            path.moveTo(d.source.x, d.source.y);
-            path.quadraticCurveTo(
-                (d.source.x + d.target.x) / 2 + 30,
-                (d.source.y + d.target.y) / 2,
-                d.target.x, d.target.y
-            );
-            return path.toString();
-        });
+        async function animateConstruction(nodes, links, suffixLinks) {
+            const delay = 500; // Delay between steps
 
-    const node = svg.selectAll(".node")
-        .data(root.descendants())
-        .enter().append("g")
-        .attr("class", "node")
-        .attr("transform", d => `translate(${d.x},${d.y})`);
+            // Animate nodes and links one by one
+            for (let i = 0; i < nodes.length; i++) {
+                const node = nodes[i];
 
-    node.append("circle")
-        .attr("r", 10)
-        .style("fill", d => d.children ? "#fff" : "#ffcc00");
+                // If not root, animate the incoming link first
+                if (node.parent) {
+                    const linkId = `#link-${node.data.name}`;
+                    d3.select(linkId).transition().duration(delay).style("opacity", 1);
+                    await sleep(delay / 2);
+                }
 
-    node.append("text")
-        .attr("dy", -15)
-        .attr("text-anchor", "middle")
-        .text(d => d.data.name);
-}
-</script>
+                // Animate the node
+                const nodeId = `#node-${node.data.name}`;
+                d3.select(nodeId).transition().duration(delay).style("opacity", 1);
+                await sleep(delay);
+            }
+
+            // Animate suffix links at the end
+            d3.selectAll(".suffix-link").transition().duration(delay).style("opacity", 0.6);
+        }
+
+        async function animateSearch() {
+            const searchInput = document.getElementById('searchInput').value;
+            if (!searchInput || !rootNode) return;
+
+            // Reset styles first
+            d3.selectAll(".node circle").style("fill", d => d.children ? "#fff" : "#ffcc00").style("stroke", "steelblue");
+            d3.selectAll(".link").style("stroke", "#ccc").style("stroke-width", "2px");
+
+            let currentNode = rootNode;
+            let remainingPattern = searchInput;
+            let found = false;
+
+            // Highlight root
+            highlightNode(currentNode.data.name, true);
+            await sleep(500);
+
+            while (remainingPattern.length > 0) {
+                let matchFound = false;
+
+                if (!currentNode.children) break;
+
+                for (const child of currentNode.children) {
+                    const edgeLabel = child.data.edgeLabel;
+
+                    // Check if edge label starts with the first char of remaining pattern
+                    if (edgeLabel && edgeLabel.startsWith(remainingPattern[0])) {
+                        // Highlight edge
+                        highlightEdge(child.data.name, true);
+                        await sleep(500);
+
+                        // Highlight node
+                        highlightNode(child.data.name, true);
+                        await sleep(500);
+
+                        // Check if the edge label is a prefix of the remaining pattern or vice versa
+                        let matchLength = 0;
+                        while (matchLength < edgeLabel.length && matchLength < remainingPattern.length && edgeLabel[matchLength] === remainingPattern[matchLength]) {
+                            matchLength++;
+                        }
+
+                        if (matchLength === edgeLabel.length) {
+                            // Consumed entire edge label, move down
+                            remainingPattern = remainingPattern.substring(matchLength);
+                            currentNode = child;
+                            matchFound = true;
+                            if (remainingPattern.length === 0) found = true;
+                        } else if (matchLength === remainingPattern.length) {
+                            // Consumed entire pattern, match found inside this edge
+                            remainingPattern = "";
+                            found = true;
+                            matchFound = true;
+                        } else {
+                            // Mismatch in the middle of edge
+                            matchFound = false; // Stop here
+                        }
+                        break; // Found the correct path, break child loop
+                    }
+                }
+
+                if (!matchFound) break;
+            }
+
+            if (found) {
+                // Count occurrences (leaves)
+                const count = countLeaves(currentNode);
+                alert(`Patrón encontrado! Aparece ${count} veces.`);
+            } else {
+                alert("Patrón no encontrado.");
+            }
+
+            // Reset after a delay
+            setTimeout(() => {
+                d3.selectAll(".node circle").style("fill", d => d.children ? "#fff" : "#ffcc00").style("stroke", "steelblue");
+                d3.selectAll(".link").style("stroke", "#ccc").style("stroke-width", "2px");
+            }, 2000);
+        }
+
+        function highlightNode(nodeId, active) {
+            d3.select(`#node-${nodeId} circle`)
+                .transition().duration(300)
+                .style("fill", active ? "#007bff" : (d => d.children ? "#fff" : "#ffcc00"))
+                .style("stroke", active ? "#0056b3" : "steelblue");
+        }
+
+        function highlightEdge(targetNodeId, active) {
+            d3.select(`#link-${targetNodeId} .link`)
+                .transition().duration(300)
+                .style("stroke", active ? "#007bff" : "#ccc")
+                .style("stroke-width", active ? "4px" : "2px");
+        }
+
+        function countLeaves(node) {
+            if (!node.children || node.children.length === 0) return 1; // A leaf node or a node with no children
+            return node.children.reduce((acc, child) => acc + countLeaves(child), 0);
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+    </script>
 
 </body>
+
 </html>
